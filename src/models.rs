@@ -1,36 +1,9 @@
 use diesel::{self, prelude::*};
+use diesel::result::Error;
 use itertools::Itertools;
 use rcir;
 
-mod schema {
-    table! {
-        users {
-            id -> Integer,
-            username -> Text,
-        }
-    }
-
-    table! {
-        items {
-            id -> Integer,
-            title -> Text,
-            body -> Text,
-            done -> Bool,
-        }
-    }
-
-    table! {
-        votes (user_id, item_id) {
-            user_id -> Integer,
-            item_id -> Integer,
-            ordinal -> Integer,
-        }
-    }
-
-    joinable!(votes -> items (item_id));
-    joinable!(votes -> users (user_id));
-    allow_tables_to_appear_in_same_query!(users, items, votes);
-}
+mod schema;
 
 use self::schema::users;
 use self::schema::votes;
@@ -73,7 +46,7 @@ pub struct NewUser {
 }
 
 impl NewUser {
-    pub fn login(self, conn: &SqliteConnection) -> User {
+    pub fn login(self, conn: &PgConnection) -> Result<User, Error> {
         // ensure that the user exists
         let _ = diesel::insert_into(self::schema::users::table)
             .values(&self)
@@ -82,12 +55,11 @@ impl NewUser {
         all_users
             .filter(users_uname.eq(&self.username))
             .get_result::<User>(conn)
-            .unwrap()
     }
 }
 
 impl Item {
-    pub fn for_user(uid: i32, conn: &SqliteConnection) -> Vec<(Item, Option<i32>)> {
+    pub fn for_user(uid: i32, conn: &PgConnection) -> Vec<(Item, Option<i32>)> {
         all_items
             .left_join(
                 self::schema::votes::table
@@ -102,7 +74,7 @@ impl Item {
 }
 
 impl Vote {
-    pub fn run_election(conn: &SqliteConnection) -> Option<Item> {
+    pub fn run_election(conn: &PgConnection) -> Option<Item> {
         let votes = all_votes
             .inner_join(self::schema::items::table)
             .filter(item_done.eq(false))
@@ -130,7 +102,7 @@ impl Vote {
         }
     }
 
-    pub fn run_second_election(conn: &SqliteConnection, winner: &Option<Item>) -> Option<Item> {
+    pub fn run_second_election(conn: &PgConnection, winner: &Option<Item>) -> Option<Item> {
         let winner = winner.as_ref()?;
 
         let votes = all_votes
@@ -161,7 +133,7 @@ impl Vote {
         }
     }
 
-    pub fn save_ballot(uid: i32, ballot: Ballot, conn: &SqliteConnection) {
+    pub fn save_ballot(uid: i32, ballot: Ballot, conn: &PgConnection) {
         diesel::delete(all_votes.filter(user_id.eq(&uid)))
             .execute(conn)
             .unwrap();
@@ -177,35 +149,4 @@ impl Vote {
                 .unwrap();
         }
     }
-
-    /*
-        let t = Task {
-            id: None,
-            description: todo.description,
-            completed: false,
-        };
-        diesel::insert_into(tasks::table)
-            .values(&t)
-            .execute(conn)
-            .is_ok()
-    }
-
-    pub fn toggle_with_id(id: i32, conn: &SqliteConnection) -> bool {
-        let task = all_tasks.find(id).get_result::<Task>(conn);
-        if task.is_err() {
-            return false;
-        }
-
-        let new_status = !task.unwrap().completed;
-        let updated_task = diesel::update(all_tasks.find(id));
-        updated_task
-            .set(task_completed.eq(new_status))
-            .execute(conn)
-            .is_ok()
-    }
-
-    pub fn delete_with_id(id: i32, conn: &SqliteConnection) -> bool {
-        diesel::delete(all_tasks.find(id)).execute(conn).is_ok()
-    }
-    */
 }

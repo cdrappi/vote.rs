@@ -1,13 +1,13 @@
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     username TEXT NOT NULL UNIQUE
 );
 CREATE UNIQUE INDEX uname ON users(username);
 
 DROP TABLE IF EXISTS items;
 CREATE TABLE items (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     body TEXT NOT NULL,
     done BOOL NOT NULL DEFAULT false
@@ -19,8 +19,10 @@ CREATE TABLE votes (
     item_id INTEGER NOT NULL,
     ordinal INTEGER NOT NULL,
 
-    FOREIGN KEY(user_id) REFERENCES users(id)
-    FOREIGN KEY(item_id) REFERENCES items(id)
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(item_id) REFERENCES items(id),
+
+    PRIMARY KEY (user_id, item_id)
 );
 CREATE UNIQUE INDEX no_dup_votes ON votes(user_id, item_id);
 CREATE INDEX ballot ON votes(user_id ASC, ordinal ASC);
