@@ -1,8 +1,8 @@
 [global]
 template_dir = "templates"
 
-[global.databases.sqlite_database]
-url = "db/db.sqlite"
+[global.databases.postgres_database]
+url = "postgres://christiandrappi@localhost:5432/rcv"
 
 [production]
 address = "127.0.0.1"
