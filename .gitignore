@@ -1,5 +1,8 @@
 # Environment
-.env
+*.env
+
+# Mac files
+.DS_Store
 
 # Compiled files
 *.o
