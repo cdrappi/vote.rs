@@ -18,17 +18,38 @@ new stream ideas) is that same username. This means that any user can
 change any other user's ballot simply by giving their username. **So
 don't use this for anything serious.**
 
-To deploy, run:
+# Instructions
 
+To use Rocket, you must use nightly builds of Rust.
+
+### Build
 ```console
-$ sqlite3 db/db.sqlite < schema.sql
+$ cargo build
+```
+
+## Database
+
+### Environment
+- Change the value of `DATABASE_URL` in `.env` file
+
+### Install the `diesel` CLI with postgres
+```console
+$ cargo install diesel_cli --no-default-features --features postgres
+```
+
+### Migrate database
+```console
+$ diesel migration run
+```
+
+## Run server
+```console
 $ cargo run --release
 ```
 
 The web interface will now be available on port `8000`.
 
-To add new candidates for voting, use `sqlite3 db/db.sqlite` and issue
-insert statements of the following form:
+To add new candidates for voting, shell into postgres and execute statements like:
 
 ```sql
 INSERT INTO items (title, body) VALUES ("My Great Idea", "Here's why it's great");

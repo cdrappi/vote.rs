@@ -12,19 +12,20 @@ extern crate rocket_contrib;
 extern crate itertools;
 extern crate rcir;
 
-mod schema;
+mod models;
+// mod schema;
 
-use diesel::SqliteConnection;
+use diesel::PgConnection;
 use rocket::http::{Cookie, Cookies};
 use rocket::outcome::IntoOutcome;
 use rocket::request::{self, Form, FromRequest, Request};
 use rocket::Rocket;
 use rocket_contrib::{json::Json, templates::Template};
 
-use schema::{Ballot, Item, NewUser, Vote};
+use models::{Ballot, Item, NewUser, Vote};
 
-#[database("sqlite_database")]
-pub struct DbConn(SqliteConnection);
+#[database("postgres_database")]
+pub struct DbConn(PgConnection);
 
 #[derive(Debug, Serialize)]
 struct Context {
@@ -75,9 +76,17 @@ fn login(mut cookies: Cookies, input: Form<NewUser>, conn: DbConn) -> Template {
     if user.username.is_empty() {
         index(conn)
     } else {
-        let u = user.login(&conn);
-        cookies.add_private(Cookie::new("user_id", u.id.to_string()));
-        votes(Auth(u.id), conn)
+        match user.login(&conn) {
+            Ok(u) => {
+                cookies.add_private(Cookie::new("user_id", u.id.to_string()));
+                votes(Auth(u.id), conn)
+            },
+            Err(e) => {
+                print!("Error logging in User: {}", e);
+                index(conn)
+            }
+        }
+        
     }
 }
 
@@ -115,6 +124,7 @@ fn rocket() -> (Rocket, Option<DbConn>) {
 
     (rocket, conn)
 }
+
 
 fn main() {
     rocket().0.launch();
